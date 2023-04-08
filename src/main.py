@@ -135,7 +135,8 @@ class Tex2HTML():
                           self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
                           htmlbody = ""
 
-                      htmlbody += line
+                      # htmlbody is first written into a tex file
+                      htmlbody += line.replace('eqnarray*','align*').replace('&=&', '&=')
 
                     self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
                     htmlbody = ""
@@ -182,13 +183,13 @@ class Tex2HTML():
 
     def formatHtml(self, line):
         if "<p>\xa0<br />\n" not in line and "<p>\u00A0<br />\n" not in line:
-            line = line.replace('&amp;', '')
             line = re.sub(r'id="beispiel(-\d+)?"', r'class="beispiel"', line)
             line = re.sub(r'id="hinweis(-\d+)?"', r'class="hinweis"', line)
             line = re.sub(r'id="definition(-\d+)?"', r'class="definition"', line)
             line = line.replace('max-width: 36em;', '').replace('padding-top: 50px;', '').replace('padding-bottom: 50px;', '')
-            line = line.replace('<span class="math display">\[\\begin{aligned}', '$').replace('\end{aligned}\]</span>', '$')
-            line = line.replace('\\)', '$').replace('\\(', '$')
+            line = line.replace('\\[', '</br>$').replace('\\]', '$')
+            line = line.replace('\\)', '</br>$').replace('\\(', '$')
+            line = line.replace('&amp; \\approx &amp;', '&amp; \\approx')
             line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
             line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
             return line
