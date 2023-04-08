@@ -146,16 +146,16 @@ class Tex2HTML():
                         end_index = line.find('}')
 
                         definition = line[start_index:end_index]
-                        line = "\\begin{mathdef}\n" + "\\section{" + definition + "}\n"
+                        line = "\\begin{definition}\n"
                         definition_flag = True
 
                       if definition_flag and line == "}\n":
-                          line = "\end{mathdef}\n"
+                          line = "\\end{definition}\n"
                           definition_flag = False
                           
                       # handle definitions END
 
-                      htmlbody += line.replace("ï¿½", "ue").replace("ï¿½", "ae").replace("Ã¶", "oe")
+                      htmlbody += line
 
                     self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
                     htmlbody = ""
@@ -191,13 +191,14 @@ class Tex2HTML():
     def formatHtml(self, line):
         if "<p>\xa0<br />\n" not in line and "<p>\u00A0<br />\n" not in line:
             line = line.replace('&amp;', '')
-            line = line.replace('\\[\\begin{aligned}', '$') #TODO: why does it sometimes work, somtimes it doesnt?
-            line = line.replace("ï¿½", "ue").replace("ï¿½", "ae").replace("Ã¶", "oe") # TODO: remove after conversion done
+            line = re.sub(r'id="beispiel(-\d+)?"', r'class="beispiel"', line)
+            line = re.sub(r'id="hinweis(-\d+)?"', r'class="hinweis"', line)
+            line = re.sub(r'id="definition(-\d+)?"', r'class="definition"', line)
             line = line.replace('max-width: 36em;', '').replace('padding-top: 50px;', '').replace('padding-bottom: 50px;', '')
             line = line.replace('<span class="math display">\[\\begin{aligned}', '$').replace('\end{aligned}\]</span>', '$')
             line = line.replace('\\)', '$').replace('\\(', '$')
             line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
-            line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>')
+            line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
             return line
         return ""
     
@@ -297,7 +298,7 @@ p {
 }
 
 /* Style for Hinweis section */
-#hinweis {
+.hinweis, .definition {
   border: 2px solid #007bff;
   background-color: #f8f9fa;
   padding: 10px;
