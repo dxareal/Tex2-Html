@@ -95,8 +95,6 @@ class Tex2HTML():
                     htmlbody = ""
                     title = ""
                     filepath = ""
-                    definition = ""
-                    definition_flag = False
 
                     for line in file_content:
                       last_filepath = filepath
@@ -137,24 +135,6 @@ class Tex2HTML():
                           self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
                           htmlbody = ""
 
-                      line = line
-
-                      # handle definitions START
-
-                      if "\DEF{" in line:
-                        start_index = line.find('{') + 1
-                        end_index = line.find('}')
-
-                        definition = line[start_index:end_index]
-                        line = "\\begin{definition}\n"
-                        definition_flag = True
-
-                      if definition_flag and line == "}\n":
-                          line = "\\end{definition}\n"
-                          definition_flag = False
-                          
-                      # handle definitions END
-
                       htmlbody += line
 
                     self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
@@ -163,7 +143,19 @@ class Tex2HTML():
 
     def writeHtml(self, filepath, title, htmlbody):
         with open(f"{filepath}.tex", 'w', encoding='utf-8') as f:
-            f.write(f"{htmlbody}")
+          f.writelines("""
+\\newcommand{\\DEF}[1]{
+  \\begin{div}
+    \\noindent\\textbf{Definition\\thedefinition: #1}
+  \\end{div}
+}
+\\newcommand{\\SATZ}[1]{
+\\begin{div}
+    \\noindent\\textbf{Satz}
+  \\end{div}
+}
+          """)
+          f.write(f"{htmlbody}")
 
         # Latex -> Html
         os.system(f'pandoc -f latex -t html -o {filepath}.html {filepath}.tex --section-divs --mathjax')
