@@ -24,6 +24,7 @@ class Tex2HTML():
         BASE
         """
 
+        os.system("rm -r output")
         self.getFileStructure()
         print(self.filestructure)
         self.tex2html()
@@ -95,6 +96,8 @@ class Tex2HTML():
                     htmlbody = ""
                     title = ""
                     filepath = ""
+                    semantic_struct = ""
+                    semantic_struct_flag = False
 
                     for line in file_content:
                       last_filepath = filepath
@@ -135,6 +138,22 @@ class Tex2HTML():
                           self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
                           htmlbody = ""
 
+                      # handle definitions START
+                      if "\DEF{" in line:
+                        line = "\n+++SEMANTIC-STRUCT-START+++ \{mathdef\}\n" + line
+                        semantic_struct_flag = True
+                      if "\SATZ{" in line:
+                        line = "\n+++SEMANTIC-STRUCT-START+++ \{theorem\}\n" + line
+                        semantic_struct_flag = True
+                      if "\BEW{" in line:
+                        line = "\n+++SEMANTIC-STRUCT-START+++ \{proof\}\n" + line
+                        semantic_struct_flag = True
+
+                      if semantic_struct_flag and line == "}\n":
+                          line = line + "\n+++SEMANTIC-STRUCT-END+++\n\n" 
+                          semantic_struct_flag = False
+                      # handle definitions END
+
                       # htmlbody is first written into a tex file
                       htmlbody += line.replace('eqnarray*','align*').replace('&=&', '&=')
 
@@ -152,9 +171,17 @@ class Tex2HTML():
 }
 \\newcommand{\\SATZ}[1]{
 \\begin{div}
-    \\noindent\\textbf{Satz}
-  \\end{div}
+\\noindent\\textbf{Satz:\\\\}
+{#1}
+\\end{div}
 }
+\\newcommand{\\BEW}[1]{
+\\begin{div}
+\\noindent\\textbf{Beweis:\\\\}
+{#1}
+\\end{div}
+}
+
           """)
           f.write(f"{htmlbody}")
 
@@ -192,8 +219,14 @@ class Tex2HTML():
             line = line.replace('&amp; \\approx &amp;', '&amp; \\approx')
             line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
             line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
-            return line
-        return ""
+        if "+++SEMANTIC-STRUCT-START+++" in line:
+            start_index = line.find('{') + 1
+            end_index = line.find('}')
+            semantic_struct = line[start_index:end_index]
+            line = f"<div class='{semantic_struct}'>"
+        if "+++SEMANTIC-STRUCT-END+++" in line:
+            line = "</div>"
+        return line
     
     def formatFilename(self, filename):
         filename = filename.replace("ï¿½", "ue").replace("ï¿½", "ae").replace("Ã¶", "oe")
@@ -290,14 +323,29 @@ p {
   font-size: 18px;
 }
 
-/* Style for Hinweis section */
-.hinweis, .definition {
-  border: 2px solid #007bff;
+/* Style for Boxes */
+.hinweis, .mathdef, .theorem, .proof {
   background-color: #f8f9fa;
   padding: 10px;
   margin-bottom: 20px;
   box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.2);
   border-radius: 5px;
+}
+
+.hinweis {
+  border: 3px solid #007bff;
+}
+
+.mathdef {
+  border: 3px solid #2ecc71;
+}
+
+.theorem {
+  border: 3px solid #34495e;
+}
+
+.proof {
+  border: 3px solid #e74c3c;
 }
 
 /* Style for Beispiel section */
