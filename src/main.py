@@ -1,5 +1,7 @@
 import os
 import re
+import shutil
+
 """
 Skript zum wandeln eines LaTeX-Skripts in ein CP (Course Package) für OLAT.
 
@@ -18,6 +20,8 @@ class Tex2HTML():
 
     def __init__(self):
         self.filestructure = {}  # dictionary to store the categories and subcategories
+        self.chapter_counter = 0
+        self.img_section_counter = 1
 
     def run(self):
         """
@@ -29,6 +33,7 @@ class Tex2HTML():
         print(self.filestructure)
         self.tex2html()
         self.generateManifest()
+        self.setupImages()
 
     def getFileStructure(self):
         """
@@ -75,7 +80,6 @@ class Tex2HTML():
             os.makedirs(output_path)
 
         course_counter = 1
-        chapter_counter = 0
         for course, topics in self.filestructure.items():
             if course is None:
                 continue
@@ -96,7 +100,6 @@ class Tex2HTML():
                     htmlbody = ""
                     title = ""
                     filepath = ""
-                    semantic_struct = ""
                     semantic_struct_flag = False
 
                     for line in file_content:
@@ -108,8 +111,8 @@ class Tex2HTML():
                       if re.search(chapter_pattern, line):  # Kapitel gefunden --> Ordner erstellen
                           chapter_name = re.search(chapter_pattern, line).group(1)
                           chapter_name = self.formatFilename(chapter_name)
-                          chapter_counter += 1
-                          chapter_folder_path = os.path.join(f"{output_path}/{course_counter}_{course}/{chapter_counter}_{chapter_name}")
+                          self.chapter_counter += 1
+                          chapter_folder_path = os.path.join(f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}")
                           os.makedirs(chapter_folder_path)
                           with open(f"{chapter_folder_path}/style.css",'w', encoding='utf-8') as f:
                             f.write(self.getCSS())
@@ -120,7 +123,7 @@ class Tex2HTML():
                           section_name = re.search(section_pattern,line).group(1)
                           section_name = self.formatFilename(section_name)
                           section_counter += 1
-                          filepath = f"{output_path}/{course_counter}_{course}/{chapter_counter}_{chapter_name}/{chapter_counter}_{section_counter}_0_{section_name}"
+                          filepath = f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}/{self.chapter_counter}_{section_counter}_0_{section_name}"
                           if last_filepath == '':
                               last_filepath = filepath
                               last_title = section_name
@@ -130,7 +133,7 @@ class Tex2HTML():
                       elif re.search(subsection_pattern, line): # Subsection gefunden --> Html erstellen
                           subsection_name = re.search(subsection_pattern,line).group(1)
                           subsection_name = self.formatFilename(subsection_name)
-                          filepath = f"{output_path}/{course_counter}_{course}/{chapter_counter}_{chapter_name}/{chapter_counter}_{section_counter}_{subsection_counter}_{subsection_name}"
+                          filepath = f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}/{self.chapter_counter}_{section_counter}_{subsection_counter}_{subsection_name}"
                           title = f"{section_counter}_{subsection_counter}_{section_name}"
                           subsection_counter += 1
                       
@@ -138,7 +141,7 @@ class Tex2HTML():
                           self.writeHtml(filepath=last_filepath, title=last_title, htmlbody=htmlbody)
                           htmlbody = ""
 
-                      # handle definitions START
+                      # handle shaboxes START
                       if "\DEF{" in line:
                         line = "\n+++SEMANTIC-STRUCT-START+++ \{mathdef\}\n" + line
                         semantic_struct_flag = True
@@ -152,7 +155,14 @@ class Tex2HTML():
                       if semantic_struct_flag and line == "}\n":
                           line = line + "\n+++SEMANTIC-STRUCT-END+++\n\n" 
                           semantic_struct_flag = False
-                      # handle definitions END
+                      # handle shaboxes END
+
+                      if "\SK" in line:
+                          start_index = line.find('{') + 1
+                          end_index = line.find('}')
+                          img_alt = line[start_index:end_index]
+                          img_alt = img_alt.replace('$', '')
+                          line = line + "\n+++SKIZZE+++ \{" + img_alt + "\}\ \nn"
 
                       # htmlbody is first written into a tex file
                       htmlbody += line.replace('eqnarray*','align*').replace('&=&', '&=')
@@ -179,6 +189,11 @@ class Tex2HTML():
 \\begin{div}
 \\noindent\\textbf{Beweis:\\\\}
 {#1}
+\\end{div}
+}
+\\newcommand{\SK}[1]{
+\\begin{div}
+\\noindent\\textbf{#1\\\\}
 \\end{div}
 }
 
@@ -226,6 +241,12 @@ class Tex2HTML():
             line = f"<div class='{semantic_struct}'>"
         if "+++SEMANTIC-STRUCT-END+++" in line:
             line = "</div>"
+        if "+++SKIZZE+++" in line:
+            start_index = line.find('{') + 1
+            end_index = line.find('}')
+            img_alt = line[start_index:end_index]
+            line = f"<img class='img_skizze' alt='{img_alt}' src='img/{self.chapter_counter}_{self.img_section_counter}.png'>"
+            self.img_section_counter += 1
         return line
     
     def formatFilename(self, filename):
@@ -428,6 +449,22 @@ p {
             f.write(self.getManifest(items=items, resources=resources))
 
         course_counter +=1
+
+    def setupImages(self):
+      course_counter = 1
+      for course, topics in self.filestructure.items():
+        if course is None:
+            continue
+
+        # Get all files in the folder
+        chapters = os.listdir(f"{output_path}/{course_counter}_{course}")
+        for chapter_counter, chapter in enumerate(chapters, start=1):
+          os.makedirs(f"{output_path}/{course_counter}_{course}/{chapter}/img")
+          img_files = os.listdir('img')
+          for img_file in img_files:
+              if re.match(fr"^{chapter_counter}_.+$", img_file):
+                  shutil.copy(f"img/{img_file}", f"{output_path}/{course_counter}_{course}/{chapter}/img")
+        course_counter += 1
 
 tex = Tex2HTML()
 tex.run()
