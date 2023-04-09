@@ -112,6 +112,7 @@ class Tex2HTML():
                           chapter_name = re.search(chapter_pattern, line).group(1)
                           chapter_name = self.formatFilename(chapter_name)
                           self.chapter_counter += 1
+                          self.img_section_counter = 1
                           chapter_folder_path = os.path.join(f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}")
                           os.makedirs(chapter_folder_path)
                           with open(f"{chapter_folder_path}/style.css",'w', encoding='utf-8') as f:
