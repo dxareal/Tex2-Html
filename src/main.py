@@ -165,6 +165,12 @@ class Tex2HTML():
                           img_alt = img_alt.replace('$', '')
                           line = line + "\n+++SKIZZE+++ \{" + img_alt + "\}\ \nn"
 
+                      if re.search(r"\\ref\{.*?\}", line):
+                          start_index = line.find('{') + 1
+                          end_index = line.find('}')
+                          ref = line[start_index:end_index]
+                          line = re.sub(r"\\ref\{.*?\}", f"Kapitel: {ref}", line)
+
                       # htmlbody is first written into a tex file
                       htmlbody += line.replace('eqnarray*','align*').replace('&=&', '&=')
 
@@ -230,9 +236,10 @@ class Tex2HTML():
             line = re.sub(r'id="hinweis(-\d+)?"', r'class="hinweis"', line)
             line = re.sub(r'id="definition(-\d+)?"', r'class="definition"', line)
             line = line.replace('max-width: 36em;', '').replace('padding-top: 50px;', '').replace('padding-bottom: 50px;', '')
-            line = line.replace('\\[', '</br>$').replace('\\]', '$')
-            line = line.replace('\\)', '</br>$').replace('\\(', '$')
-            line = line.replace('&amp; \\approx &amp;', '&amp; \\approx')
+            line = line.replace('\\[', '</br>$').replace('\\]', '$</br>')
+            line = line.replace('\\)', '</br>$').replace('\\(', '$</br>') # Problem: Geklammerte Wörter.. zb 10_1_0 Anfang
+            #line = line.replace('\\)', '$').replace('\\(','$')
+            line = line.replace('&amp; \\approx &amp;', '&amp; \\approx').replace('&amp;\\approx &amp;', '&amp; \\approx')
             line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
             line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
         if "+++SEMANTIC-STRUCT-START+++" in line:
@@ -272,8 +279,8 @@ class Tex2HTML():
   <script>
     MathJax.Hub.Config({
       tex2jax: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        inlineMath: [['$', '$']],
+        displayMath: [['$$', '$$']],
         processEscapes: true,
         processEnvironments: true,
         processRefs: true,
