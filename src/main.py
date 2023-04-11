@@ -203,7 +203,6 @@ class Tex2HTML():
 \\noindent\\textbf{#1\\\\}
 \\end{div}
 }
-
           """)
           f.write(f"{htmlbody}")
 
@@ -353,16 +352,12 @@ p {
 }
 
 /* Style for Boxes */
-.hinweis, .mathdef, .theorem, .proof {
+.mathdef, .theorem, .proof {
   background-color: #f8f9fa;
   padding: 10px;
   margin-bottom: 20px;
   box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.2);
   border-radius: 5px;
-}
-
-.hinweis {
-  border: 3px solid #007bff;
 }
 
 .mathdef {
@@ -391,13 +386,14 @@ p {
         """
 
     def getManifest(self, items, resources):
-        return """
-<?xml version="1.0" encoding="utf8" standalone="no" ?>
+      return """<?xml version="1.0" encoding="utf8" standalone="no" ?>
+
 <!--
      Course: Angewandte Mathematik
      Author: Daniel de Sousa Areal
   Last edit: 25.03.2023
 -->
+
 <manifest identifier="hstrier" 
           version="1"
           xmlns="http://www.imsglobal.org/xsd/ims_cp_rootv1p1">
@@ -405,7 +401,7 @@ p {
     <schema>IMS Content</schema>
     <schemaversion>1.1</schemaversion>
   </metadata>
-	<organizations default="Hochschule_Trier">
+	<organizations default="hochschule_trier">
 		<organization identifier="hs_trier">
         <title>Angewandte Mathematik</title>
         """ + items + """
@@ -419,7 +415,6 @@ p {
     
     def getManifestItem(self, counter, title):
         return """
-        </item>
           <item identifier="item_""" + str(counter) + """" identifierref="resource_""" + str(counter) + """">
 				<title>""" + title +"""</title>
 			</item>
@@ -447,6 +442,7 @@ p {
           resources = ""
           # Filter the files to only include HTML files
           html_files = [f for f in files if f.endswith(".html")]
+          html_files.sort()
           for html_file in html_files:
             items += self.getManifestItem(counter=counter, title=(html_file[6:-5].replace('_', ' ')))
             resources += self.getManifestResource(counter=counter, filepath=f"{chapter}/{html_file}")
