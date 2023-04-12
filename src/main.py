@@ -238,7 +238,7 @@ class Tex2HTML():
             line = line.replace('\\[', '</br>$').replace('\\]', '$</br>')
             line = line.replace('\\)', '</br>$').replace('\\(', '$</br>') # Problem: Geklammerte Wörter.. zb 10_1_0 Anfang
             #line = line.replace('\\)', '$').replace('\\(','$')
-            line = line.replace('&amp; \\approx &amp;', '&amp; \\approx').replace('&amp;\\approx &amp;', '&amp; \\approx').replace('&amp; =&amp', '=&amp');
+            line = line.replace('&amp; \\approx &amp;', '&amp; \\approx').replace('&amp;\\approx &amp;', '&amp; \\approx').replace('&amp; =&amp', '&amp=');
             line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
             line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
         if "+++SEMANTIC-STRUCT-START+++" in line:
