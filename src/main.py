@@ -227,19 +227,21 @@ class Tex2HTML():
             output_file.write(self.getBaseHtmlFoot())
 
             # remove .tex files
-            #os.system(f'rm {filepath}.tex') #TODO: COMMENT-IN in PRODUCTION
+            os.system(f'rm {filepath}.tex') #TODO: COMMENT-IN in PRODUCTION
 
     def formatHtml(self, line):
-        if "<p>\xa0<br />\n" not in line and "<p>\u00A0<br />\n" not in line:
-            line = re.sub(r'id="beispiel(-\d+)?"', r'class="beispiel"', line)
-            line = re.sub(r'id="hinweis(-\d+)?"', r'class="hinweis"', line)
-            line = re.sub(r'id="definition(-\d+)?"', r'class="definition"', line)
-            line = line.replace('max-width: 36em;', '').replace('padding-top: 50px;', '').replace('padding-bottom: 50px;', '')
-            line = line.replace('\\[', '</br>$').replace('\\]', '$</br>')
-            line = line.replace('\\)', '</br>$').replace('\\(', '$</br>') # Problem: Geklammerte Wörter.. zb 10_1_0 Anfang
-            line = line.replace('&amp; \\approx &amp;', '&amp; \\approx').replace('&amp;\\approx &amp;', '&amp; \\approx').replace('&amp; =&amp', '&amp=').replace('&amp;  = &amp;', '&amp='); #TODO: use REGEX
-            line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
-            line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
+        line = re.sub(r'id="beispiel(-\d+)?"', r'class="beispiel"', line)
+        line = re.sub(r'id="hinweis(-\d+)?"', r'class="hinweis"', line)
+        line = re.sub(r'id="definition(-\d+)?"', r'class="definition"', line)
+        line = line.replace('max-width: 36em;', '').replace('padding-top: 50px;', '').replace('padding-bottom: 50px;', '')
+        line = line.replace('\\[', '</br>$').replace('\\]', '$</br>')
+        line = line.replace('\\)', '</br>$').replace('\\(', '$</br>') # Problem: Geklammerte Wörter.. zb 10_1_0 Anfang
+        line = line.replace('&amp; \\approx &amp;', '&amp; \\approx').replace('&amp;\\approx &amp;', '&amp; \\approx').replace('&amp; =&amp', '&amp=').replace('&amp;  = &amp;', '&amp='); #TODO: use REGEX
+        line = line.replace('\\R', '\\mathbb{R}').replace('\\Q', '\\mathbb{Q}').replace('\\C', '\\mathbb{C}').replace('\\I', '\\mathbb{I}').replace('\\I', '\\mathbb{N}').replace('\\Z', '\\mathbb{Z}').replace('\\M', '\\mathbb{M}')
+        line = line.replace('<h5>Hinweis</h5>', '<h2>Hinweis:</h2>').replace('<h5>Beispiel</h5>', '<h2>Beispiel:</h2>').replace('<h5>Definition</h5>', '<h2>Definition</h2>')
+        
+        if "<p>\xa0<br />\n" in line or "<p>\u00A0<br />\n" in line:
+            line = ""
         if "+++SEMANTIC-STRUCT-START+++" in line:
             start_index = line.find('{') + 1
             end_index = line.find('}')
@@ -256,7 +258,6 @@ class Tex2HTML():
         return line
     
     def formatFilename(self, filename):
-        filename = filename.replace("ï¿½", "ue").replace("ï¿½", "ae").replace("Ã¶", "oe")
         filename = filename.replace("ü", "ue").replace("ä", "ae").replace("ö", "oe")
         filename = filename.replace("Ü", "Ue").replace("Ä", "Ae").replace("Ö", "Oe")
         filename = filename.replace("$", "").replace("/", "").replace(" ", "_").replace("\\", "").replace("\'", "")
@@ -370,21 +371,9 @@ p {
 .proof {
   border: 3px solid #e74c3c;
 }
-
-/* Style for Beispiel section */
-#beispiel {
-  margin: 30px 0 0 0;
-}
-
-/* Style for Hinweis and Beispiel headings */
-.level4 h4 {
-  font-size: 18px;
-  font-weight: bold;
-  margin: 0 0 10px 0;
-}
         """
 
-    def getManifest(self, items, resources):
+    def getManifest(self, items, resources): #TODO: extract title from script
       return """<?xml version="1.0" encoding="utf8" standalone="no" ?>
 
 <!--
@@ -414,15 +403,15 @@ p {
     
     def getManifestItem(self, counter, title):
         return """
-          <item identifier="item_""" + str(counter) + """" identifierref="resource_""" + str(counter) + """">
+          <item identifier='item_""" + str(counter) + """' identifierref='resource_""" + str(counter) + """'>
 				<title>""" + title +"""</title>
 			</item>
         """
 
     def getManifestResource(self, counter, filepath):
         return """
-    <resource identifier="resource_""" + str(counter) + """" type="webcontent" href=" """ + filepath + """">
-      <file href=" """ + filepath + """"/>
+    <resource identifier='resource_""" + str(counter) + """' type="webcontent" href='""" + filepath + """'>
+      <file href='""" + filepath + """'/>
 		</resource>
         """
 
@@ -444,7 +433,7 @@ p {
           html_files.sort()
           for html_file in html_files:
             items += self.getManifestItem(counter=counter, title=(html_file[6:-5].replace('_', ' ')))
-            resources += self.getManifestResource(counter=counter, filepath=f"{chapter}/{html_file}")
+            resources += self.getManifestResource(counter=counter, filepath=html_file)
             
             counter += 1
             pass
@@ -461,6 +450,7 @@ p {
 
         # Get all files in the folder
         chapters = os.listdir(f"{output_path}/{course_counter}_{course}")
+        chapters.sort()
         for chapter_counter, chapter in enumerate(chapters, start=1):
           os.makedirs(f"{output_path}/{course_counter}_{course}/{chapter}/img")
           img_files = os.listdir('img')
