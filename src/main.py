@@ -403,10 +403,15 @@ p {
     
     def getManifestItem(self, counter, title):
         return """
-          <item identifier='item_""" + str(counter) + """' identifierref='resource_""" + str(counter) + """'>
+      <item identifier='item_""" + str(counter) + """' identifierref='resource_""" + str(counter) + """'>
 				<title>""" + title +"""</title>
-			</item>
         """
+    def getManifestSubitem(self, counter, title):
+        return """
+          <item identifier='item_""" + str(counter) + """' identifierref='resource_""" + str(counter) + """'>
+            <title>""" + title +"""</title>
+          </item>
+            """
 
     def getManifestResource(self, counter, filepath):
         return """
@@ -426,17 +431,30 @@ p {
         for chapter in chapters:
           files = os.listdir(f"{output_path}/{course_counter}_{course}/{chapter}")
           counter = 1
+          subcounter = 1
           items = ""
           resources = ""
           # Filter the files to only include HTML files
           html_files = [f for f in files if f.endswith(".html")]
           html_files.sort()
           for html_file in html_files:
-            items += self.getManifestItem(counter=counter, title=(html_file[6:-5].replace('_', ' ')))
+            file = html_file.split('_')
+            title = " ".join(file[3:]).replace('.html', '')
+            
+            if(file[2] != '0'):
+              if(file[2] == '1'):
+                  counter-=1
+              items += self.getManifestSubitem(counter=str(counter) +"_"+ str(subcounter), title=title)
+              resources += self.getManifestResource(counter=str(counter) +"_"+ str(subcounter), filepath=html_file)
+              subcounter += 1
+              continue
+
+            items += self.getManifestItem(counter=counter, title=title)
             resources += self.getManifestResource(counter=counter, filepath=html_file)
             
             counter += 1
-            pass
+            items += "</item>"
+
           with open(f"{output_path}/{course_counter}_{course}/{chapter}/imsmanifest.xml",'w', encoding='utf-8') as f:
             f.write(self.getManifest(items=items, resources=resources))
 
