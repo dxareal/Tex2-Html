@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from zipfile import ZipFile
 
 """
 Skript zum wandeln eines LaTeX-Skripts in ein CP (Course Package) für OLAT.
@@ -14,7 +15,9 @@ Skript zum wandeln eines LaTeX-Skripts in ein CP (Course Package) für OLAT.
 """
 
 input_path = "input"
+tmp_path = "tmp"
 output_path = "output"
+DEBUG = True
 
 class Tex2HTML():
 
@@ -28,12 +31,12 @@ class Tex2HTML():
         BASE
         """
 
-        os.system("rm -r output")
+        os.system("rm -r tmp")
         self.getFileStructure()
-        print(self.filestructure)
         self.tex2html()
         self.generateManifest()
         self.setupImages()
+        self.zipFolders()
 
     def getFileStructure(self):
         """
@@ -76,8 +79,8 @@ class Tex2HTML():
         section_pattern = r'\\section\s*\{([^{}]*)\}'  # regular expression pattern to match "\section{...}"
         subsection_pattern = r'\\subsection\s*\{([^{}]*)\}'  # regular expression pattern to match "\subsection{...}"
 
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
+        if not os.path.exists(tmp_path):
+            os.makedirs(tmp_path)
 
         course_counter = 1
         for course, topics in self.filestructure.items():
@@ -85,7 +88,7 @@ class Tex2HTML():
                 continue
 
             course = self.formatFilename(course)
-            os.makedirs(f"{output_path}/{course_counter}_{course}")
+            os.makedirs(f"{tmp_path}/{course_counter}_{course}")
 
             if topics is None:
                 continue
@@ -113,7 +116,7 @@ class Tex2HTML():
                           chapter_name = self.formatFilename(chapter_name)
                           self.chapter_counter += 1
                           self.img_section_counter = 1
-                          chapter_folder_path = os.path.join(f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}")
+                          chapter_folder_path = os.path.join(f"{tmp_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}")
                           os.makedirs(chapter_folder_path)
                           with open(f"{chapter_folder_path}/style.css",'w', encoding='utf-8') as f:
                             f.write(self.getCSS())
@@ -124,7 +127,7 @@ class Tex2HTML():
                           section_name = re.search(section_pattern,line).group(1)
                           section_name = self.formatFilename(section_name)
                           section_counter += 1
-                          filepath = f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}/{self.chapter_counter}_{section_counter}_0_{section_name}"
+                          filepath = f"{tmp_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}/{self.chapter_counter}_{section_counter}_0_{section_name}"
                           if last_filepath == '':
                               last_filepath = filepath
                               last_title = section_name
@@ -134,7 +137,7 @@ class Tex2HTML():
                       elif re.search(subsection_pattern, line): # Subsection gefunden --> Html erstellen
                           subsection_name = re.search(subsection_pattern,line).group(1)
                           subsection_name = self.formatFilename(subsection_name)
-                          filepath = f"{output_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}/{self.chapter_counter}_{section_counter}_{subsection_counter}_{subsection_name}"
+                          filepath = f"{tmp_path}/{course_counter}_{course}/{self.chapter_counter}_{chapter_name}/{self.chapter_counter}_{section_counter}_{subsection_counter}_{subsection_name}"
                           title = f"{section_counter}_{subsection_counter}_{section_name}"
                           subsection_counter += 1
                       
@@ -226,8 +229,9 @@ class Tex2HTML():
 
             output_file.write(self.getBaseHtmlFoot())
 
-            # remove .tex files
-            os.system(f'rm {filepath}.tex') #TODO: COMMENT-IN in PRODUCTION
+            if not DEBUG:
+              # remove .tex files
+              os.system(f'rm {filepath}.tex')
 
     def formatHtml(self, line):
         line = re.sub(r'id="beispiel(-\d+)?"', r'class="beispiel"', line)
@@ -415,9 +419,9 @@ p {
             continue
 
         # Get all files in the folder
-        chapters = os.listdir(f"{output_path}/{course_counter}_{course}")
+        chapters = os.listdir(f"{tmp_path}/{course_counter}_{course}")
         for chapter in chapters:
-          files = os.listdir(f"{output_path}/{course_counter}_{course}/{chapter}")
+          files = os.listdir(f"{tmp_path}/{course_counter}_{course}/{chapter}")
           files.sort()
 
           item_counter = 1
@@ -430,7 +434,7 @@ p {
           
           items, resources = self.generateManifestBody(files=html_files)    
 
-          with open(f"{output_path}/{course_counter}_{course}/{chapter}/imsmanifest.xml",'w', encoding='utf-8') as f:
+          with open(f"{tmp_path}/{course_counter}_{course}/{chapter}/imsmanifest.xml",'w', encoding='utf-8') as f:
             f.write(self.getManifest(items=items, resources=resources))
 
         course_counter +=1
@@ -480,14 +484,38 @@ p {
             continue
 
         # Get all files in the folder
-        chapters = os.listdir(f"{output_path}/{course_counter}_{course}")
+        chapters = os.listdir(f"{tmp_path}/{course_counter}_{course}")
         chapters.sort()
         for chapter_counter, chapter in enumerate(chapters, start=1):
-          os.makedirs(f"{output_path}/{course_counter}_{course}/{chapter}/img")
+          os.makedirs(f"{tmp_path}/{course_counter}_{course}/{chapter}/img")
           img_files = os.listdir('img')
           for img_file in img_files:
               if re.match(fr"^{chapter_counter}_.+$", img_file):
-                  shutil.copy(f"img/{img_file}", f"{output_path}/{course_counter}_{course}/{chapter}/img")
+                  shutil.copy(f"img/{img_file}", f"{tmp_path}/{course_counter}_{course}/{chapter}/img")
+        course_counter += 1
+
+    def zipFolders(self):
+      course_counter = 1
+      if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+      for course, topics in self.filestructure.items():
+        if course is None:
+            continue
+
+        # Get all files in the folder
+        chapters = os.listdir(f"{tmp_path}/{course_counter}_{course}")
+        for chapter in chapters:
+
+          with ZipFile(f"{output_path}/{chapter}.zip",'w') as zip:
+            files = os.listdir(f"{tmp_path}/{course_counter}_{course}/{chapter}")
+            files.sort()
+            # writing each file one by one
+            for file in files:
+                zip.write(f"{tmp_path}/{course_counter}_{course}/{chapter}/{file}")
+        
+            if not DEBUG:
+              os.system(f'rmdir {tmp_path}/{course_counter}_{course}')
         course_counter += 1
 
 tex = Tex2HTML()
