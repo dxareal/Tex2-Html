@@ -400,22 +400,10 @@ p {
     </resources>
 </manifest>
         """
-    
-    def getManifestItem(self, counter, title):
-        return """
-      <item identifier='item_""" + str(counter) + """' identifierref='resource_""" + str(counter) + """'>
-				<title>""" + title +"""</title>
-        """
-    def getManifestSubitem(self, counter, title):
-        return """
-          <item identifier='item_""" + str(counter) + """' identifierref='resource_""" + str(counter) + """'>
-            <title>""" + title +"""</title>
-          </item>
-            """
 
     def getManifestResource(self, counter, filepath):
         return """
-    <resource identifier='resource_""" + str(counter) + """' type="webcontent" href='""" + filepath + """'>
+    <resource identifier='resource_""" + counter + """' type="webcontent" href='""" + filepath + """'>
       <file href='""" + filepath + """'/>
 		</resource>
         """
@@ -430,35 +418,60 @@ p {
         chapters = os.listdir(f"{output_path}/{course_counter}_{course}")
         for chapter in chapters:
           files = os.listdir(f"{output_path}/{course_counter}_{course}/{chapter}")
-          counter = 1
-          subcounter = 1
+          files.sort()
+
+          item_counter = 1
+          subitem_counter = 1
           items = ""
           resources = ""
-          # Filter the files to only include HTML files
+          
           html_files = [f for f in files if f.endswith(".html")]
           html_files.sort()
-          for html_file in html_files:
-            file = html_file.split('_')
-            title = " ".join(file[3:]).replace('.html', '')
-            
-            if(file[2] != '0'):
-              if(file[2] == '1'):
-                  counter-=1
-              items += self.getManifestSubitem(counter=str(counter) +"_"+ str(subcounter), title=title)
-              resources += self.getManifestResource(counter=str(counter) +"_"+ str(subcounter), filepath=html_file)
-              subcounter += 1
-              continue
-
-            items += self.getManifestItem(counter=counter, title=title)
-            resources += self.getManifestResource(counter=counter, filepath=html_file)
-            
-            counter += 1
-            items += "</item>"
+          
+          items, resources = self.generateManifestBody(files=html_files)    
 
           with open(f"{output_path}/{course_counter}_{course}/{chapter}/imsmanifest.xml",'w', encoding='utf-8') as f:
             f.write(self.getManifest(items=items, resources=resources))
 
         course_counter +=1
+
+    def generateManifestBody(self, files):
+        i = 0
+        items = ""
+        resources = ""
+        section_counter = 0
+        subsection_counter = 0
+        while i < len(files):
+          section_counter += 1
+          current_file = files[i].split('_')
+          current_title = " ".join(current_file[3:]).replace('.html', '')
+
+          items += """
+    <item identifier='item_""" + str(section_counter) + """' identifierref='resource_""" + str(section_counter) + """'>
+        <title>""" + current_title +"""</title>"""
+
+          if (i+3) < len(files):
+            next_file = files[i+1].split('_')
+            next_title = " ".join(next_file[3:]).replace('.html', '')
+
+            while next_file[2] != '0':
+              items += """
+          <item identifier='item_""" + f"{section_counter}_{subsection_counter}" + """' identifierref='resource_""" + f"{section_counter}_{subsection_counter}" + """'>
+              <title>""" + next_title +"""</title>
+          </item>"""
+              resources += self.getManifestResource(counter=f"{section_counter}_{subsection_counter}", filepath=files[i+1])
+
+              if (i+3) > len(files):
+                break
+              subsection_counter += 1
+              i += 1
+              next_file = files[i+1].split('_')
+              next_title = " ".join(next_file[3:]).replace('.html', '')
+
+          items += "\n    </item>"
+          resources += self.getManifestResource(counter=f"{section_counter}", filepath=files[i])
+          i += 1
+        return items, resources
 
     def setupImages(self):
       course_counter = 1
