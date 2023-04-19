@@ -14,6 +14,7 @@ In the end, the respective folders are zipped to fit the CP specifications.
 They are outputted in the specified folder on the top of the script.
 
 Default values are:
+(Top Level folders, same height as the src folder)
 - input folder (containing the main script and it's dependencies): /input
 - output folder (containing the zipped CP, ready for upload): /output
 - tmp folder (containing the temporary results): /tmp
